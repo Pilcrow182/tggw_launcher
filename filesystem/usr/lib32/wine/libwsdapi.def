@@ -1,0 +1,6 @@
+; File generated automatically from ../dlls/wsdapi/wsdapi.spec; do not edit!
+
+LIBRARY wsdapi.dll
+
+EXPORTS
+  WSDCreateDiscoveryPublisher@8 @20

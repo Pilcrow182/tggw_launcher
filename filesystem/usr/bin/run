@@ -1,0 +1,106 @@
+#!/bin/bash
+AppDir="${APPIMAGE%/*}"
+DebugLog="${AppDir}/debug.log"
+
+Font=""
+FontSize=""
+Background=""
+Foreground=""
+Geometry=""
+Execute=""
+Debug=""
+Extras=""
+UseXTerm="true"
+
+while [[ $# -gt 0 ]]; do
+	Option="$1"
+	case $Option in
+		--help)
+			printf "\n"
+			printf "Pilcrow's TGGW Launcher, release 2017.Jul.30\n"
+			printf "\n"
+			printf "Usage:\n"
+			printf "  ${APPIMAGE##*/} [options]\n"
+			printf "\n"
+			printf "Options:\n"
+			printf "  --console                  Opens TGGW in the current terminal instead of a new window\n"
+			printf "  --debug                    Displays the contents of debug.log on exit\n"
+			printf "  --help                     Displays this message\n"
+			printf "\n"
+			printf "Notes:\n"
+			printf "  This launcher also supports all XTerm options (see the list with '${APPIMAGE##*/} -help')\n"
+			printf "\n"
+			exit
+		;;
+		--console)
+			UseXTerm="false"
+		;;
+		--debug)
+			Debug="true"
+		;;
+		-fa)
+			shift
+			Font="$1"
+		;;
+		-fs)
+			shift
+			FontSize="$1"
+		;;
+		-bg)
+			shift
+			Background="$1"
+		;;
+		-fg)
+			shift
+			Foreground="$1"
+		;;
+		-geometry)
+			shift
+			Geometry="$1"
+		;;
+		-e)
+			shift
+			Execute="$1"
+		;;
+		AppImage:*)
+			sleep 0
+		;;
+		*)
+			Extras="$Extras $1"
+		;;
+	esac
+	shift
+done
+
+rm -f "${DebugLog}"
+
+[[ "$Font" == "" ]] && { Font="monospace"; }
+[[ "$FontSize" == "" ]] && { FontSize="10"; }
+[[ "$Background" == "" ]] && { Background="black"; }
+[[ "$Foreground" == "" ]] && { Foreground="green"; }
+[[ "$Geometry" == "" ]] && { Geometry="92x38"; }
+[[ "$Execute" == "" ]] && { Execute="env WINEPREFIX='${HOME}/.wine-appimage' wineconsole --backend=curses '${AppDir}/The Ground Gives Way.exe' 2>> '${DebugLog}'"; }
+Trimmed_Execute=$(sed 's/^.*wineconsole/wineconsole/;s/\.exe.*$/\.exe/' <<< "$Execute")
+
+[[ -f "${AppDir}/The Ground Gives Way.exe" ]] || {
+	printf "[LAUNCHER] ERROR: Cannot find executable '%s/The Ground Gives Way.exe'\n" "${AppDir}" >> "${DebugLog}"
+	exit
+}
+
+pushd "$AppDir" >/dev/null 2>&1
+
+[[ "$UseXTerm" == "true" ]] && {
+	printf '[LAUNCHER] Executing xterm -fa "%s" -fs "%s" -bg "%s" -fg "%s" -geometry "%s" %s -e "%s"\n' "$Font" "$FontSize" "$Background" "$Foreground" "$Geometry" "$Extras" "${Trimmed_Execute}" >> "${DebugLog}" 2>&1
+	xterm -fa "$Font" -fs "$FontSize" -bg "$Background" -fg "$Foreground" -geometry "$Geometry" $Extras -e "$Execute" 2>>"${DebugLog}"
+}
+
+[[ "$UseXTerm" != "true" ]] && {
+	printf '[LAUNCHER] Executing %s\n' "${Trimmed_Execute}" >> "${DebugLog}" 2>&1
+	env WINEPREFIX="${HOME}/.wine-appimage" wineconsole --backend=curses "${AppDir}/The Ground Gives Way.exe" 2>>"${DebugLog}"
+}
+
+[[ "$Debug" == "true" ]] && {
+	cat "${DebugLog}"
+}
+
+popd >/dev/null 2>&1
